@@ -25,7 +25,8 @@ var SeamCarving = (function(){
                 self[2] - imgData.data[(imgData.width*y + x)*4 + 2],
             ];
 
-            return Math.sqrt(dist[0]*dist[0] + dist[1]*dist[1] + dist[2]*dist[2]);
+            return dist[0]*dist[0] + dist[1]*dist[1] + dist[2]*dist[2];
+            //return Math.sqrt(dist[0]*dist[0] + dist[1]*dist[1] + dist[2]*dist[2]);
         }
 
         if(x > 0)

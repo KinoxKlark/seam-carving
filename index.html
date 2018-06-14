@@ -72,6 +72,7 @@
                 canvas.width/2/scale - imageData.width/2,
                 canvas.height/2/scale - imageData.height/2
             );
+            ctx.scale(1/scale, 1/scale);
         }
 
         var img = new Image();
@@ -88,7 +89,6 @@
 
         }
         img.src = './img/03.jpg';
-
 
         document.getElementById('toggle-display').onclick = function()
         {
