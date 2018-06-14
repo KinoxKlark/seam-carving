@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Seam Carving Algorithm</title>
+
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css" integrity="sha384-WskhaSGFgHYWDcbwN70/dfYBj47jz9qbsMId/iRN3ewGhXQFZCSftd1LZCfmhktB" crossorigin="anonymous">
+    <link rel="stylesheet" href="css/styles.css" type="text/css" />
+</head>
+<body>
+
+    <div class="container">
+        <h1>Seam Carving</h1>
+
+        <button class="btn" id="toggle-display">Toggle display</button>
+
+        <canvas id="image-canvas" width="600" height="400"></canvas>
+
+        <form>
+            <div class="form-row">
+                <div class="form-group col-md-6">
+                    <label for="img-width">Width</label>
+                    <input type="number" class="form-control" id="img-width" value="0" step="1" min="0">
+                </div>
+                <div class="form-group col-md-6">
+                    <label for="img-height">Height</label>
+                    <input type="number" class="form-control" id="img-height" value="0" step="1" min="0">
+                </div>
+            </div>
+            <div class="form-row">
+                <input type="file" class="form-control-file" id="file-input">
+            </div>
+        </form>
+    </div>
+
+    <script src="js/load-image.js"></script>
+    <script src="js/seam-carving.js"></script>
+    <script>
+
+        /*
+        document.getElementById('file-input').onchange = function (e) {
+            loadImage(
+                e.target.files[0],
+                function (img) {
+                    document.body.appendChild(img);
+                },
+                {maxWidth: 600} // Options
+            );
+        };
+        //*/
+
+        var displayEnergy = false;
+
+        /**
+         * This function draw an imageData on the main canvas of this app
+         */
+        function drawImage(canvas, imageData)
+        {
+            var tmp_canvas = document.createElement('canvas');
+            tmp_canvas.width = imageData.width;
+            tmp_canvas.height = imageData.height;
+            tmp_canvas.getContext('2d').putImageData(imageData,0,0);
+
+            var scale = Math.min(canvas.width/imageData.width, canvas.height/imageData.height);
+
+            var ctx = canvas.getContext('2d');
+            ctx.scale(scale, scale);
+            ctx.drawImage(
+                tmp_canvas,
+                canvas.width/2/scale - imageData.width/2,
+                canvas.height/2/scale - imageData.height/2
+            );
+        }
+
+        var img = new Image();
+        img.crossOrigin = null;
+        img.onload = function() {
+
+            if(SeamCarving.loadImage(this, 300,300))
+            {
+                if(displayEnergy)
+                    drawImage(document.getElementById('image-canvas'), SeamCarving.getEnergyImageData());
+                else
+                    drawImage(document.getElementById('image-canvas'), SeamCarving.getImageData());
+            }
+
+        }
+        img.src = './img/03.jpg';
+
+
+        document.getElementById('toggle-display').onclick = function()
+        {
+            displayEnergy = !displayEnergy;
+            if(displayEnergy)
+                drawImage(document.getElementById('image-canvas'), SeamCarving.getEnergyImageData());
+            else
+                drawImage(document.getElementById('image-canvas'), SeamCarving.getImageData());
+        };
+
+
+
+    </script>
+
+</body>
+</html>
