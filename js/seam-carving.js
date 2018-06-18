@@ -5,6 +5,7 @@ var SeamCarving = (function(){
     var energyImgData;
     var energyData = [];
 
+    var synthetise = true;
 
     var maxEnergy = 0;
     var computeEnergy = function(x, y) {
@@ -80,14 +81,17 @@ var SeamCarving = (function(){
         energy += Math.abs(energy_vertical/6);
         energy += Math.abs(energy_horizontal/6);
 
-        //energy = energy > 0.15 ? 1 : 0;
+        //energy = energy > 0.2 ? 1 : 0;
 
+        energy /= 2;
 
         if(maxEnergy < energy)
             maxEnergy = energy;
 
-        return energy;
+        //return energy;
         energy = 0;
+
+        var energy_contrast = 0;
 
         // --------------------------- Autre fonction :
 
@@ -106,32 +110,32 @@ var SeamCarving = (function(){
                 self[2] - imgData.data[(imgData.width*y + x)*4 + 2],
             ];
 
-            return dist[0]*dist[0] + dist[1]*dist[1] + dist[2]*dist[2];
-            //return Math.sqrt(dist[0]*dist[0] + dist[1]*dist[1] + dist[2]*dist[2]);
+            //return dist[0]*dist[0] + dist[1]*dist[1] + dist[2]*dist[2];
+            return Math.sqrt(dist[0]*dist[0] + dist[1]*dist[1] + dist[2]*dist[2]);
         }
 
         if(x > 0)
         {
-            energy += dist(x-1,y);
+            energy_contrast += dist(x-1,y);
             nb++;
         }
         if(x < imgData.width-1)
         {
-            energy += dist(x+1,y);
+            energy_contrast += dist(x+1,y);
             nb++;
         }
         if(y > 0)
         {
-            energy += dist(x,y-1);
+            energy_contrast += dist(x,y-1);
             nb++;
         }
         if(y < imgData.height-1)
         {
-            energy += dist(x,y+1);
+            energy_contrast += dist(x,y+1);
             nb++;
         }
 
-        energy /= nb;
+        energy_contrast /= nb*255;
 
         /*if(y > 0)
         {
@@ -143,6 +147,9 @@ var SeamCarving = (function(){
 
             energy += legacy;
         }*/
+
+        coef = .98;
+        energy = coef*energy_contrast + (1-coef)*(energy_vertical+energy_horizontal);
 
         if(maxEnergy < energy)
             maxEnergy = energy;
@@ -212,7 +219,8 @@ var SeamCarving = (function(){
 
         console.log(maxEnergy);
 
-        //synthetiseEnergyData();
+        if(synthetise)
+            synthetiseEnergyData();
 
         console.log(maxEnergy);
 
