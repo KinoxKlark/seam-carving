@@ -2,6 +2,7 @@
 var SeamCarving = (function(){
 
     var imgData;
+    var tmpImgData;
     var energyImgData;
     var energyData = [];
 
@@ -148,7 +149,7 @@ var SeamCarving = (function(){
             energy += legacy;
         }*/
 
-        coef = .98;
+        coef = 1;
         energy = coef*energy_contrast + (1-coef)*(energy_vertical+energy_horizontal);
 
         if(maxEnergy < energy)
@@ -178,100 +179,130 @@ var SeamCarving = (function(){
         }
     }
 
-    var loadImage = function(img, width, height) {
+    var loadImage = function(img, width, height, callbacks) {
 
-        console.log(img.width, img.height);
-
-        var scale = Math.min(width/img.width, height/img.height);
-        scale=1; // On commence par enlever le système de mise à l'échelle
+        var scale = Math.max(width/img.width, height/img.height);
+        //scale=1; // On commence par enlever le système de mise à l'échelle
 
         var canvas = document.createElement('canvas');
         canvas.width = img.width*scale;
         canvas.height = img.height*scale;
 
+
         var ctx = canvas.getContext('2d');
         ctx.scale(scale,scale);
         ctx.drawImage(img, 0,0);
+        ctx.scale(1/scale, 1/scale);
 
-        imgData = ctx.getImageData(0,0,img.width, img.height);
-        energyImgData = new ImageData(
-            new Uint8ClampedArray(imgData.data),
-            imgData.width,
-            imgData.height
-        )
-        energyData = [];
+        imgData = ctx.getImageData(0,0, canvas.width, canvas.height);
 
-        var minEnergyLastRow = Infinity;
-        var minEnergyLastRowIdx;
-        for(var y = 0; y < imgData.height; ++y)
-        //for(var y = 0; y < 3; ++y)
-        {
-            for(var x = 0; x < imgData.width; ++x)
-            //for(var x = 0; x < 3; ++x)
+        var algo = setInterval(function() {
+            if(imgData.width < width)
             {
-                var energy = computeEnergy(x, y)
-                energyData.push(energy);
-
-                //if(x > 2) die();
+                clearInterval(algo);
+                console.log('done');
             }
-            //die();
-        }
-
-        console.log(maxEnergy);
-
-        if(synthetise)
-            synthetiseEnergyData();
-
-        console.log(maxEnergy);
-
-        for(var y = 0; y < imgData.height; ++y)
-        {
-            for(var x = 0; x < imgData.width; ++x)
+            else // imgData.width < width
             {
-                var energy = energyData[imgData.width*y + x];
-                if(y == imgData.height-1 && minEnergyLastRow > energy)
+                console.log('======');
+                console.log(imgData.width, imgData.height);
+                console.log(canvas.width, canvas.height);
+
+                energyImgData = new ImageData(
+                    new Uint8ClampedArray(imgData.data),
+                    imgData.width,
+                    imgData.height
+                )
+                energyData = [];
+
+                var minEnergyLastRow = Infinity;
+                var minEnergyLastRowIdx;
+                for(var y = 0; y < imgData.height; ++y)
                 {
-                    minEnergyLastRow = energy;
-                    minEnergyLastRowIdx = x;
-                }
-
-                energyImgData.data[(imgData.width*y + x)*4 + 0] = 255*energy/maxEnergy; // R
-                energyImgData.data[(imgData.width*y + x)*4 + 1] = 255*energy/maxEnergy; // G
-                energyImgData.data[(imgData.width*y + x)*4 + 2] = 255*energy/maxEnergy; // B
-            }
-        }
-
-
-        console.log(minEnergyLastRow, minEnergyLastRowIdx);
-
-        var xSeam = minEnergyLastRowIdx;
-        for(var ySeam = imgData.height-1; ySeam >= 0; --ySeam)
-        {
-            imgData.data[(imgData.width*ySeam + xSeam)*4 + 0] = 255; // R
-            imgData.data[(imgData.width*ySeam + xSeam)*4 + 1] = 0; // G
-            imgData.data[(imgData.width*ySeam + xSeam)*4 + 2] = 0; // B
-
-            var nxtIdx;
-            var nxtMin = Infinity;
-            for(var i = -1; i <= 1; ++i)
-            {
-                if(xSeam+i >= 0 && xSeam+i < imgData.width)
-                {
-                    var nxt = energyData[imgData.width*(ySeam-1)+(xSeam+i)];
-                    if(nxt < nxtMin)
+                    for(var x = 0; x < imgData.width; ++x)
                     {
-                        nxtMin = nxt;
-                        nxtIdx = xSeam+i;
+                        var energy = computeEnergy(x, y)
+                        energyData.push(energy);
                     }
                 }
+
+                if(synthetise)
+                    synthetiseEnergyData();
+
+                // TODO: Refactor all of this
+                // Last row minimal energy
+                // Image for display normalisation
+                for(var y = 0; y < imgData.height; ++y)
+                {
+                    for(var x = 0; x < imgData.width; ++x)
+                    {
+                        var energy = energyData[imgData.width*y + x];
+                        if(y == imgData.height-1 && minEnergyLastRow > energy)
+                        {
+                            minEnergyLastRow = energy;
+                            minEnergyLastRowIdx = x;
+                        }
+
+                        energyImgData.data[(imgData.width*y + x)*4 + 0] = 255*energy/maxEnergy; // R
+                        energyImgData.data[(imgData.width*y + x)*4 + 1] = 255*energy/maxEnergy; // G
+                        energyImgData.data[(imgData.width*y + x)*4 + 2] = 255*energy/maxEnergy; // B
+                    }
+                }
+
+                var carvedImageCanvas = document.createElement('canvas');
+                carvedImageCanvas.width = imgData.width-1;
+                carvedImageCanvas.height = imgData.height;
+                var carvedImageData = carvedImageCanvas.getContext("2d").getImageData(0,0, carvedImageCanvas.width, carvedImageCanvas.height);
+
+                var xSeam = minEnergyLastRowIdx;
+                for(var ySeam = imgData.height-1; ySeam >= 0; --ySeam)
+                {
+                    /* // Draw seam in red
+                    imgData.data[(imgData.width*ySeam + xSeam)*4 + 0] = 255; // R
+                    imgData.data[(imgData.width*ySeam + xSeam)*4 + 1] = 0; // G
+                    imgData.data[(imgData.width*ySeam + xSeam)*4 + 2] = 0; // B
+                    //*/
+
+                    var nxtIdx;
+                    var nxtMin = Infinity;
+                    for(var i = -1; i <= 1; ++i)
+                    {
+                        if(xSeam+i >= 0 && xSeam+i < imgData.width)
+                        {
+                            var nxt = energyData[imgData.width*(ySeam-1)+(xSeam+i)];
+                            if(nxt < nxtMin)
+                            {
+                                nxtMin = nxt;
+                                nxtIdx = xSeam+i;
+                            }
+                        }
+                    }
+
+                    var xCopy = carvedImageData.width-1;
+                    for(var x = imgData.width-1; x >= 0; --x)
+                    {
+                        if(x != xSeam)
+                        {
+                            carvedImageData.data[(ySeam*carvedImageData.width+xCopy)*4+0] = imgData.data[(imgData.width*ySeam + x)*4 + 0];
+                            carvedImageData.data[(ySeam*carvedImageData.width+xCopy)*4+1] = imgData.data[(imgData.width*ySeam + x)*4 + 1];
+                            carvedImageData.data[(ySeam*carvedImageData.width+xCopy)*4+2] = imgData.data[(imgData.width*ySeam + x)*4 + 2];
+                            carvedImageData.data[(ySeam*carvedImageData.width+xCopy)*4+3] = imgData.data[(imgData.width*ySeam + x)*4 + 3];
+
+                            --xCopy;
+                        }
+                    }
+
+                    var xSeam = nxtIdx;
+                }
+
+                tmpImgData = carvedImageData;
+                imgData = carvedImageData;
+
             }
 
-            var xSeam = nxtIdx;
-        }
-
-        //console.log(energyData);
-        //console.log(maxEnergy);
-        //console.log(imgData);
+            if(callbacks !== undefined)
+                callbacks(imgData);
+        }, 100);
 
         return true;
     };
@@ -284,10 +315,15 @@ var SeamCarving = (function(){
     {
         return energyImgData;
     }
+    var getTmpImageData = function()
+    {
+        return tmpImgData;
+    }
 
     return {
         loadImage: loadImage,
         getImageData: getImageData,
+        getTmpImageData: getTmpImageData,
         getEnergyImageData: getEnergyImageData,
     }
 })();

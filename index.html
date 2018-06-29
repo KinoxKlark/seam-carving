@@ -63,9 +63,11 @@
             tmp_canvas.height = imageData.height;
             tmp_canvas.getContext('2d').putImageData(imageData,0,0);
 
-            var scale = Math.min(canvas.width/imageData.width, canvas.height/imageData.height);
+            var scale = (imageData.width > canvas.width || imageData.height > canvas.height) ?
+                Math.min(canvas.width/imageData.width, canvas.height/imageData.height) : 1;
 
             var ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.scale(scale, scale);
             ctx.drawImage(
                 tmp_canvas,
@@ -79,10 +81,14 @@
         img.crossOrigin = null;
         img.onload = function() {
 
-            if(SeamCarving.loadImage(this, 300,300))
+            if(SeamCarving.loadImage(this, 400, 300, function(imgData) {
+                console.log(imgData);
+                drawImage(document.getElementById('image-canvas'), imgData);
+            }))
             {
                 if(displayEnergy)
-                    drawImage(document.getElementById('image-canvas'), SeamCarving.getEnergyImageData());
+                    drawImage(document.getElementById('image-canvas'), SeamCarving.getTmpImageData());
+                    //drawImage(document.getElementById('image-canvas'), SeamCarving.getEnergyImageData());
                 else
                     drawImage(document.getElementById('image-canvas'), SeamCarving.getImageData());
             }
@@ -94,7 +100,8 @@
         {
             displayEnergy = !displayEnergy;
             if(displayEnergy)
-                drawImage(document.getElementById('image-canvas'), SeamCarving.getEnergyImageData());
+                drawImage(document.getElementById('image-canvas'), SeamCarving.getTmpImageData());
+                //drawImage(document.getElementById('image-canvas'), SeamCarving.getEnergyImageData());
             else
                 drawImage(document.getElementById('image-canvas'), SeamCarving.getImageData());
         };
